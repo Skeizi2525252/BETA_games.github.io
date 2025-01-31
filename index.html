@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTRA CASINO</title>
+    <style>
+        :root {
+            --neon-1: #bc13fe;
+            --neon-2: #4d4dff;
+            --neon-3: #ff44cc;
+            --glow: rgba(188,19,254,0.3);
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+        }
+
+        .particles {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .game-card {
+            position: relative;
+            background: rgba(0,0,0,0.3);
+            border: 2px solid var(--neon-1);
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            text-align: center;
+            user-select: none;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent, var(--glow), transparent);
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .game-card:hover::before {
+            opacity: 0.3;
+        }
+
+        .game-card.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px var(--neon-1), inset 0 0 15px var(--neon-1);
+        }
+
+        .game-container {
+            position: relative;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 30px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            border: 1px solid var(--neon-2);
+            box-shadow: 0 0 50px rgba(77,77,255,0.2);
+            display: none;
+            text-align: center;
+        }
+
+        .game-container.active {
+            display: block;
+        }
+
+        .balance-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 30px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 25px;
+            border: 1px solid var(--neon-1);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+        }
+
+        /* Стили для мины */
+        .mines-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+
+        .mine-cell {
+            width: 60px;
+            height: 60px;
+            background: #1a1a1a;
+            border: 2px solid var(--neon-1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5em;
+            transition: all 0.3s;
+        }
+
+        .mine-cell.revealed {
+            background: #333;
+            border-color: #666;
+            cursor: default;
+        }
+
+        .mine-cell.bomb {
+            background: #ff4444;
+            animation: bombExplode 0.5s;
+        }
+
+        @keyframes bombExplode {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* Стили для слотов */
+        .slots-machine {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+            perspective: 1000px;
+        }
+
+        .slot {
+            width: 80px;
+            height: 120px;
+            background: #1a1a1a;
+            border: 2px solid var(--neon-1);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .slot-reel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            transition: top 2s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        .slot-item {
+            width: 80px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+        }
+
+        /* Стили для рулетки */
+        .roulette-wheel {
+            width: 300px;
+            height: 300px;
+            background: #1a1a1a;
+            border: 2px solid var(--neon-1);
+            border-radius: 50%;
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .roulette-ball {
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(1080deg); }
+        }
+
+        @keyframes ballMove {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(-1080deg); }
+        }
+
+        /* Стили для костей */
+        .dice-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .dice {
+            width: 60px;
+            height: 60px;
+            background: #1a1a1a;
+            border: 2px solid var(--neon-1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        @keyframes rollDice {
+            0% { transform: rotateX(0deg) rotateY(0deg); }
+            100% { transform: rotateX(720deg) rotateY(720deg); }
+        }
+
+        /* Стили для блэкджека */
+        .cards {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            width: 60px;
+            height: 90px;
+            background: #1a1a1a;
+            border: 2px solid var(--neon-1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+        }
+
+        button.bet-btn {
+            background: var(--neon-1);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: 0.3s;
+            margin: 10px;
+        }
+
+        button.bet-btn:hover {
+            background: var(--neon-3);
+            box-shadow: 0 0 15px var(--neon-3);
+        }
+
+        /* Стили для Хамстер кликера */
+        .clicker-container {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .clicker-container.active {
+            display: block;
+        }
+
+        .clicker-btn {
+            background: var(--neon-1);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 2em;
+            transition: 0.3s;
+            margin: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .clicker-btn:hover {
+            background: var(--neon-3);
+            box-shadow: 0 0 20px var(--neon-3);
+        }
+
+        .click-effect {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: clickAnimation 0.5s ease-out;
+        }
+
+        @keyframes clickAnimation {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+
+        .upgrades {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .upgrade-btn {
+            background: var(--neon-2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: 0.3s;
+            position: relative;
+        }
+
+        .upgrade-btn:hover {
+            background: var(--neon-3);
+            box-shadow: 0 0 15px var(--neon-3);
+        }
+
+        .upgrade-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 5px;
+            background: var(--neon-1);
+            transition: width 0.3s;
+        }
+
+        .auto-clicker-effect {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 1.5em;
+            color: var(--neon-1);
+            animation: autoClickerEffect 1s infinite;
+        }
+
+        @keyframes autoClickerEffect {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <canvas class="particles"></canvas>
+
+    <div class="balance-panel">
+        Баланс: $<span id="balance">10000</span>
+    </div>
+
+    <div class="game-grid">
+        <div class="game-card active" data-game="mines">💣 Мины</div>
+        <div class="game-card" data-game="slots">🎰 Слоты</div>
+        <div class="game-card" data-game="roulette">🎡 Рулетка</div>
+        <div class="game-card" data-game="dice">🎲 Кости</div>
+        <div class="game-card" data-game="blackjack">🃏 Блэкджек</div>
+        <div class="game-card" data-game="clicker">🐹 Хамстер клик</div>
+    </div>
+
+    <!-- Игра в мины -->
+    <div class="game-container active" id="mines">
+        <div class="mines-grid" id="minesGrid"></div>
+        <button class="bet-btn" onclick="startMinesGame()">Новая игра (100$)</button>
+    </div>
+
+    <!-- Игра в слоты -->
+    <div class="game-container" id="slots">
+        <div class="slots-machine">
+            <div class="slot" id="slot1">
+                <div class="slot-reel" id="reel1"></div>
+            </div>
+            <div class="slot" id="slot2">
+                <div class="slot-reel" id="reel2"></div>
+            </div>
+            <div class="slot" id="slot3">
+                <div class="slot-reel" id="reel3"></div>
+            </div>
+        </div>
+        <button class="bet-btn" onclick="spinSlots()">Крутить! (50$)</button>
+    </div>
+
+    <!-- Игра в рулетку -->
+    <div class="game-container" id="roulette">
+        <div class="roulette-wheel" id="rouletteWheel">
+            <div class="roulette-ball" id="rouletteBall"></div>
+        </div>
+        <button class="bet-btn" onclick="spinRoulette()">Крутить рулетку (50$)</button>
+    </div>
+
+    <!-- Игра в кости -->
+    <div class="game-container" id="dice">
+        <div class="dice-container">
+            <div class="dice" id="dice1"></div>
+            <div class="dice" id="dice2"></div>
+        </div>
+        <button class="bet-btn" onclick="rollDice()">Бросить кости (50$)</button>
+    </div>
+
+    <!-- Игра в блэкджек -->
+    <div class="game-container" id="blackjack">
+        <div class="cards" id="playerCards"></div>
+        <div class="cards" id="dealerCards"></div>
+        <button class="bet-btn" onclick="hit()">Взять карту (50$)</button>
+        <button class="bet-btn" onclick="stand()">Остановиться</button>
+    </div>
+
+    <!-- Хамстер кликер -->
+    <div class="game-container clicker-container" id="clicker">
+        <button class="clicker-btn" onclick="clickHamster(event)">🐹 Клик!</button>
+        <div class="upgrades">
+            <button class="upgrade-btn" onclick="buyUpgrade('clickPower')">
+                Улучшить клик (100$)
+                <div class="upgrade-progress" id="clickPowerProgress"></div>
+            </button>
+            <button class="upgrade-btn" onclick="buyUpgrade('autoClicker')">
+                Автокликер (500$)
+                <div class="upgrade-progress" id="autoClickerProgress"></div>
+            </button>
+        </div>
+        <div class="auto-clicker-effect" id="autoClickerEffect" style="display: none;">+1$</div>
+    </div>
+
+    <script>
+        let balance = 10000;
+        let mines = [];
+        const symbols = ['🍒', '💎', '7️⃣', '🍀', '🔔', '⭐'];
+        let isSpinning = false;
+
+        // Инициализация игры в мины
+        function initMines() {
+            const grid = document.getElementById('minesGrid');
+            grid.innerHTML = '';
+            mines = [];
+            
+            for(let i = 0; i < 25; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'mine-cell';
+                cell.dataset.value = Math.random() < 0.2 ? 'bomb' : 'safe';
+                cell.textContent = '?';
+                cell.onclick = () => revealCell(cell);
+                grid.appendChild(cell);
+                mines.push(cell);
+            }
+        }
+
+        function revealCell(cell) {
+            if(cell.classList.contains('revealed')) return;
+            
+            cell.classList.add('revealed');
+            if(cell.dataset.value === 'bomb') {
+                cell.classList.add('bomb');
+                cell.textContent = '💣';
+                balance -= 100;
+                setTimeout(() => alert('Бомба! Вы проиграли 100$'), 100);
+            } else {
+                cell.textContent = '💎';
+                balance += 50;
+            }
+            updateBalance();
+        }
+
+        function startMinesGame() {
+            if(balance < 100) return alert('Недостаточно средств!');
+            balance -= 100;
+            updateBalance();
+            initMines();
+        }
+
+        // Игра в слоты
+        function initSlots() {
+            const reels = document.querySelectorAll('.slot-reel');
+            reels.forEach(reel => {
+                reel.innerHTML = '';
+                for(let i = 0; i < 20; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'slot-item';
+                    item.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+                    reel.appendChild(item);
+                }
+            });
+        }
+
+        function spinSlots() {
+            if(isSpinning) return;
+            if(balance < 50) return alert('Недостаточно средств!');
+            balance -= 50;
+            updateBalance();
+            isSpinning = true;
+            
+            const reels = document.querySelectorAll('.slot-reel');
+            const results = [];
+            
+            reels.forEach((reel, index) => {
+                const randomOffset = -(Math.floor(Math.random() * 15) + 5) * 120;
+                reel.style.transition = 'top 2s cubic-bezier(0.25, 0.1, 0.25, 1)';
+                reel.style.top = `${randomOffset}px`;
+                
+                setTimeout(() => {
+                    const finalSymbol = Math.floor(-randomOffset / 120) % symbols.length;
+                    results[index] = symbols[finalSymbol];
+                    
+                    if(index === 2) {
+                        isSpinning = false;
+                        if(results[0] === results[1] && results[1] === results[2]) {
+                            balance += 500;
+                            alert('Джекпот! +500$');
+                        } else if(results[0] === results[1] || results[1] === results[2]) {
+                            balance += 100;
+                            alert('Вы выиграли 100$');
+                        } else {
+                            alert('Вы проиграли');
+                        }
+                        updateBalance();
+                    }
+                }, 2000);
+            });
+        }
+
+        // Игра в рулетку
+        function spinRoulette() {
+            if(balance < 50) return alert('Недостаточно средств!');
+            balance -= 50;
+            updateBalance();
+            
+            const wheel = document.getElementById('rouletteWheel');
+            const ball = document.getElementById('rouletteBall');
+            const result = Math.floor(Math.random() * 37);
+            const color = result === 0 ? 'green' : (result % 2 === 0 ? 'red' : 'black');
+            
+            wheel.style.animation = 'spin 4s ease-out';
+            ball.style.animation = 'ballMove 4s ease-out';
+            
+            setTimeout(() => {
+                wheel.style.animation = '';
+                ball.style.animation = '';
+                alert(`Выпало: ${result} (${color})`);
+                if (result === 0) {
+                    balance += 500;
+                    alert('Вы выиграли джекпот! +500$');
+                } else if (color === 'red') {
+                    balance += 100;
+                    alert('Вы выиграли 100$');
+                } else {
+                    alert('Вы проиграли');
+                }
+                updateBalance();
+            }, 4000);
+        }
+
+        // Игра в кости
+        function rollDice() {
+            if(balance < 50) return alert('Недостаточно средств!');
+            balance -= 50;
+            updateBalance();
+            
+            const dice1 = document.getElementById('dice1');
+            const dice2 = document.getElementById('dice2');
+            const result1 = Math.floor(Math.random() * 6) + 1;
+            const result2 = Math.floor(Math.random() * 6) + 1;
+            const total = result1 + result2;
+            
+            dice1.textContent = result1;
+            dice2.textContent = result2;
+            dice1.style.animation = 'rollDice 2s ease-out';
+            dice2.style.animation = 'rollDice 2s ease-out';
+            
+            setTimeout(() => {
+                dice1.style.animation = '';
+                dice2.style.animation = '';
+                alert(`Выпало: ${result1} и ${result2} (всего ${total})`);
+                if (total === 7 || total === 11) {
+                    balance += 200;
+                    alert('Вы выиграли 200$');
+                } else {
+                    alert('Вы проиграли');
+                }
+                updateBalance();
+            }, 2000);
+        }
+
+        // Игра в блэкджек
+        let playerCards = [];
+        let dealerCards = [];
+        let gameActive = false;
+
+        function initBlackjack() {
+            if(gameActive) return;
+            playerCards = [];
+            dealerCards = [];
+            document.getElementById('playerCards').innerHTML = '';
+            document.getElementById('dealerCards').innerHTML = '';
+            dealCards();
+            gameActive = true;
+        }
+
+        function dealCards() {
+            playerCards.push(drawCard());
+            dealerCards.push(drawCard());
+            playerCards.push(drawCard());
+            dealerCards.push(drawCard());
+            updateCards();
+        }
+
+        function drawCard() {
+            return Math.min(Math.floor(Math.random() * 11) + 1, 10);
+        }
+
+        function updateCards() {
+            const playerCardsDiv = document.getElementById('playerCards');
+            const dealerCardsDiv = document.getElementById('dealerCards');
+            playerCardsDiv.innerHTML = playerCards.map(card => `<div class="card">${card}</div>`).join('');
+            dealerCardsDiv.innerHTML = dealerCards.map(card => `<div class="card">${card}</div>`).join('');
+        }
+
+        function hit() {
+            if(!gameActive || balance < 50) return;
+            balance -= 50;
+            updateBalance();
+            
+            playerCards.push(drawCard());
+            updateCards();
+            
+            if (getSum(playerCards) > 21) {
+                alert('Перебор! Вы проиграли');
+                endBlackjack();
+            }
+        }
+
+        function stand() {
+            if(!gameActive) return;
+            while (getSum(dealerCards) < 17) {
+                dealerCards.push(drawCard());
+            }
+            updateCards();
+            
+            if (getSum(dealerCards) > 21 || getSum(playerCards) > getSum(dealerCards)) {
+                balance += 100;
+                alert('Вы выиграли 100$');
+            } else {
+                alert('Вы проиграли');
+            }
+            endBlackjack();
+        }
+
+        function getSum(cards) {
+            return cards.reduce((sum, card) => sum + card, 0);
+        }
+
+        function endBlackjack() {
+            gameActive = false;
+            playerCards = [];
+            dealerCards = [];
+            updateBalance();
+        }
+
+        // Хамстер кликер
+        let clickPower = 1;
+        let autoClicker = 0;
+        let autoClickerInterval;
+        let clickPowerLevel = 1;
+        let autoClickerLevel = 1;
+
+        function clickHamster(event) {
+            balance += clickPower;
+            updateBalance();
+
+            // Анимация клика
+            const clickEffect = document.createElement('div');
+            clickEffect.className = 'click-effect';
+            clickEffect.style.left = `${event.offsetX - 10}px`;
+            clickEffect.style.top = `${event.offsetY - 10}px`;
+            event.target.appendChild(clickEffect);
+
+            // Удаляем эффект после завершения анимации
+            setTimeout(() => {
+                clickEffect.remove();
+            }, 500);
+        }
+
+        function buyUpgrade(type) {
+            if (type === 'clickPower' && balance >= 100) {
+                balance -= 100;
+                clickPower += 1;
+                clickPowerLevel += 1;
+                updateUpgradeProgress('clickPower', clickPowerLevel);
+            } else if (type === 'autoClicker' && balance >= 500) {
+                balance -= 500;
+                autoClicker += 1;
+                autoClickerLevel += 1;
+                updateUpgradeProgress('autoClicker', autoClickerLevel);
+
+                if (!autoClickerInterval) {
+                    autoClickerInterval = setInterval(() => {
+                        balance += autoClicker;
+                        updateBalance();
+                        showAutoClickerEffect();
+                    }, 1000);
+                }
+            } else {
+                alert('Недостаточно средств!');
+                return;
+            }
+            updateBalance();
+        }
+
+        function updateUpgradeProgress(type, level) {
+            const progress = document.getElementById(`${type}Progress`);
+            if (progress) {
+                progress.style.width = `${(level % 5) * 20}%`;
+                if (level % 5 === 0) {
+                    progress.style.width = '100%';
+                    setTimeout(() => {
+                        progress.style.width = '0%';
+                    }, 500);
+                }
+            }
+        }
+
+        function showAutoClickerEffect() {
+            const effect = document.getElementById('autoClickerEffect');
+            effect.style.display = 'block';
+            setTimeout(() => {
+                effect.style.display = 'none';
+            }, 1000);
+        }
+
+        // Общие функции
+        function updateBalance() {
+            document.getElementById('balance').textContent = balance;
+        }
+
+        // Переключение игр
+        document.querySelectorAll('.game-card').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.game-container').forEach(container => {
+                    container.classList.remove('active');
+                });
+                document.querySelectorAll('.game-card').forEach(card => {
+                    card.classList.remove('active');
+                });
+                
+                const gameId = btn.dataset.game;
+                document.getElementById(gameId).classList.add('active');
+                btn.classList.add('active');
+            });
+        });
+
+        // Частицы фона
+        const canvas = document.querySelector('.particles');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const particlesArray = [];
+        const numberOfParticles = 100;
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 5 + 1;
+                this.speedX = Math.random() * 3 - 1.5;
+                this.speedY = Math.random() * 3 - 1.5;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                if (this.size > 0.2) this.size -= 0.1;
+            }
+
+            draw() {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.strokeStyle = 'rgba(188, 19, 254, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+
+        function initParticles() {
+            for (let i = 0; i < numberOfParticles; i++) {
+                particlesArray.push(new Particle());
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+                particlesArray[i].draw();
+
+                if (particlesArray[i].size <= 0.2) {
+                    particlesArray.splice(i, 1);
+                    i--;
+                }
+            }
+            if (particlesArray.length < numberOfParticles) {
+                particlesArray.push(new Particle());
+            }
+            requestAnimationFrame(animateParticles);
+        }
+
+        // Инициализация при загрузке
+        window.addEventListener('load', () => {
+            initMines();
+            initSlots();
+            initParticles();
+            animateParticles();
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
